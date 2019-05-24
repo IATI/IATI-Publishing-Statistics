@@ -1,0 +1,4 @@
+This directory contains stats modules that can be loaded by the stats runner.
+
+E.g. python loop.py --stats-module stats.dashboard
+

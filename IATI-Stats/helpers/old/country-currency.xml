@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<data>
+    <country name="Australia" ISO="AUD"/>
+    <country name="Canada" ISO="CAD"/>
+    <country name="United Kingdom" ISO="GBP"/>
+    <country name="United States" ISO="USD"/>
+    <country name="Denmark" ISO="DKK"/>
+    <country name="Finland" ISO="DKK"/>
+    <country name="Japan" ISO="JPY"/>
+    <country name="Korea" ISO="KRW"/>
+    <country name="New Zealand" ISO="NZD"/>
+    <country name="Norway" ISO="NOK"/>
+    <country name="Sweden" ISO="SEK"/>
+    <country name="Switzerland" ISO="CHF"/>
+    <country name="ECU/EURO (1)" ISO="EUR"/>
+    <country name="Austria" ISO="ATS" last="2001"/>
+    <country name="Belgium" ISO="BEF" last="2001"/>
+    <country name="Finland" ISO="FIM" last="2001"/>
+    <country name="France" ISO="FRF" last="2001"/>
+    <country name="Germany" ISO="DEM" last="2001"/>
+    <country name="Greece" ISO="GRD" last="2001"/>
+    <country name="Ireland" ISO="IEP" last="2001"/>
+    <country name="Italy" ISO="ITL" last="2001"/>
+    <country name="Luxembourg" ISO="LUF" last="2001"/>
+    <country name="Netherlands" ISO="NLG" last="2001"/>
+    <country name="Portugal" ISO="PTE" last="2001"/>
+    <country name="Spain" ISO="ESP" last="2001"/>
+</data>
