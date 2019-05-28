@@ -3,7 +3,7 @@ set -e
 
 mkdir gitout
 for f in ckan gitdate; do
-    curl --compress "http://dashboard.iatistandard.org/stats/${f}.json" > gitout/${f}.json
+    curl --compressed "http://dashboard.iatistandard.org/stats/${f}.json" > gitout/${f}.json
 done
 
 mkdir stats-blacklist
