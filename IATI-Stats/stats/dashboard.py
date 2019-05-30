@@ -700,8 +700,11 @@ class ActivityStats(CommonSharedElements):
         this_year = datetime.date.today().year
 
         # Retreive a dictionary with the activity identifier and the result for this and the next two years
-        return {self.element.find('iati-identifier').text: {year: int(self._forwardlooking_exclude_in_calculations(year))
-                for year in range(this_year, this_year + 3)}}
+        try:
+            return {self.element.find('iati-identifier').text: {year: int(self._forwardlooking_exclude_in_calculations(year))
+                    for year in range(this_year, this_year + 3)}}
+        except AttributeError as e:
+            print("Error {}: {}".format(self.context, e))
 
 
     @returns_numberdict
@@ -810,7 +813,10 @@ class ActivityStats(CommonSharedElements):
     @returns_dict
     def comprehensiveness_current_activities(self):
         """Outputs whether each activity is considered current for the purposes of comprehensiveness calculations"""
-        return {self.element.find('iati-identifier').text: self.comprehensiveness_current_activity_status}
+        try:
+            return {self.element.find('iati-identifier').text: self.comprehensiveness_current_activity_status}
+        except AttributeError as e:
+            print("Error {}: {}".format(self.context, e))
 
     def _is_recipient_language_used(self):
         """If there is only 1 recipient-country, test if one of the languages for that country is used
@@ -1160,9 +1166,11 @@ class ActivityStats(CommonSharedElements):
                     transaction.find('transaction-type').attrib.get('code') in [self._incoming_funds_code(), self._commitment_code(), self._disbursement_code(), self._expenditure_code()]):
 
                 # Set transaction_value if a value exists for this transaction. Else set to 0
-                transaction_value = 0 if value is None else Decimal(value.text)
-
-                out[self._transaction_type_code(transaction)][get_currency(self, transaction)][self._transaction_year(transaction)] += transaction_value
+                try:
+                    transaction_value = 0 if value is None or value.text is None else Decimal(value.text)
+                    out[self._transaction_type_code(transaction)][get_currency(self, transaction)][self._transaction_year(transaction)] += transaction_value
+                except decimal.InvalidOperation as e:
+                    print("Error {}: {}".format(self.context, e))
         return out
 
     @returns_numberdictdictdict
