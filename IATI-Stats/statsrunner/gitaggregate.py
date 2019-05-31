@@ -17,20 +17,6 @@ git_out_dir = os.path.join(GITOUT_DIR, 'gitaggregate-dated' if dated else 'gitag
 # of memory/disk space if aggregated over time
 whitelisted_stats_files = [
     'activities',
-    'activity_files',
-    'file_size_bins',
-    'file_size',
-    'invalidxml',
-    'nonstandardroots',
-    'organisation_files',
-    'publisher_has_org_file',
-    'publishers_per_version',
-    'publishers',
-    'publishers_validation',
-    'unique_identifiers',
-    'validation',
-    'versions',
-    'teststat'  # Extra 'stat' added as the test_gitaggregate.py assumes a file with this name is present
 ]
 
 # Load the reference of commits to dates
