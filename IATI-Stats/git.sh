@@ -44,9 +44,6 @@ echo "LOG: `date '+%Y-%m-%d %H:%M:%S'` - Calculating stats (loop)"
 python calculate_stats.py loop > $GITOUT_DIR/logs/loop.log || exit 1
 echo "LOG: `date '+%Y-%m-%d %H:%M:%S'` - Calculating stats (aggregate)"
 python calculate_stats.py aggregate > $GITOUT_DIR/logs/aggregate.log || exit 1
-echo "LOG: `date '+%Y-%m-%d %H:%M:%S'` - Calculating stats (invert)"
-python calculate_stats.py $@ --today "$commit_date" invert > $GITOUT_DIR/logs/invert.log
-#python statsrunner/hashcopy.py || exit 1
 
 echo "LOG: `date '+%Y-%m-%d %H:%M:%S'` - Running gitaggregate.py"
 python statsrunner/gitaggregate.py
