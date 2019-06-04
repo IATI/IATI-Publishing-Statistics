@@ -2,12 +2,11 @@ import datetime
 import decimal
 import json
 import os
-import sys
 
 from collections import defaultdict
 from common import decimal_default
 
-GITOUT_DIR = os.environ.get('GITOUT_DIR') or 'gitout'
+GITOUT_DIR = os.environ.get('GITOUT_DIR') or 'outputs'
 
 # Only aggregate certain json stats files at publisher level
 # These should be small stats files that will not consume large amounts of
@@ -22,53 +21,36 @@ whitelisted_stats_files = [
     'most_recent_transaction_date'
 ]
 
-# Set bool if the 'dated' argument has been used in calling this script
-dated = len(sys.argv) > 1 and sys.argv[1] == 'dated'
+for publisher in os.listdir(os.path.join(GITOUT_DIR, 'aggregated-publisher')):
+    print "{0} Currently looping over publisher {1}".format(str(datetime.datetime.now()), publisher)
 
-# Load the reference of commits to dates
-if dated:
-    gitdates = json.load(open('gitdate.json'))
+    # Set output directory for this publisher and attempt to make the directory. Pass if it already exists
+    git_out_dir = os.path.join(GITOUT_DIR, 'gitaggregate-publisher', publisher)
+    try:
+        os.makedirs(git_out_dir)
+    except OSError:
+        pass
 
-# Loop over folders in the 'commits' directory
-# Variable commit will be the commit hash
-for commit in os.listdir(os.path.join(GITOUT_DIR, 'commits')):
-    print "gitaggregate-publisher for commit {}".format(commit)
+    # Set an output dictionary for this publisher
+    total = defaultdict(dict)
 
-    for publisher in os.listdir(os.path.join(GITOUT_DIR, 'commits', commit, 'aggregated-publisher')):
-        print "{0} Currently looping over publisher {1}".format(str(datetime.datetime.now()), publisher)
+    if os.path.isdir(git_out_dir):
+        # Loop over the existing files in the output directory for this publisher and load them into the 'total' dictionary
+        for fname in os.listdir(git_out_dir):
+            if fname.endswith('.json'):
+                with open(os.path.join(git_out_dir, fname)) as filepath:
+                    total[fname[:-5]] = json.load(filepath, parse_float=decimal.Decimal)
 
-        # Set output directory for this publisher and attempt to make the directory. Pass if it already exists
-        git_out_dir = os.path.join(GITOUT_DIR, 'gitaggregate-publisher-dated' if dated else 'gitaggregate-publisher', publisher)
-        try:
-            os.makedirs(git_out_dir)
-        except OSError:
-            pass
+    # Loop over the whitelisted states files and add current values to the 'total' dictionary
+    for statname in whitelisted_stats_files:
+        path = os.path.join(GITOUT_DIR, 'aggregated-publisher', publisher, statname+'.json')
+        if os.path.isfile(path):
+            with open(path) as filepath:
+                statfile = json.load(filepath, parse_float=decimal.Decimal)
+                total[statname] = statfile
 
-        # Set an output dictionary for this publisher
-        total = defaultdict(dict)
-
-        if os.path.isdir(git_out_dir):
-            # Loop over the existing files in the output directory for this publisher and load them into the 'total' dictionary
-            for fname in os.listdir(git_out_dir):
-                if fname.endswith('.json'):
-                    with open(os.path.join(git_out_dir, fname)) as filepath:
-                        total[fname[:-5]] = json.load(filepath, parse_float=decimal.Decimal)
-
-        # Loop over the whitelisted states files and add current values to the 'total' dictionary
-        for statname in whitelisted_stats_files:
-            path = os.path.join(GITOUT_DIR, 'commits', commit, 'aggregated-publisher', publisher, statname+'.json')
-            if os.path.isfile(path):
-                with open(path) as filepath:
-                    if commit not in total[statname]:
-                        statfile = json.load(filepath, parse_float=decimal.Decimal)
-                        if dated:
-                            if commit in gitdates:
-                                total[statname][gitdates[commit]] = statfile
-                        else:
-                            total[statname][commit] = statfile
-
-        # Write data from the 'total' dictionary to a temporary file, then rename
-        for statname, statfile in total.items():
-            with open(os.path.join(git_out_dir, statname + '.json.new'), 'w') as filepath:
-                json.dump(statfile, filepath, sort_keys=True, indent=2, default=decimal_default)
-            os.rename(os.path.join(git_out_dir, statname + '.json.new'), os.path.join(git_out_dir, statname+'.json'))
+    # Write data from the 'total' dictionary to a temporary file, then rename
+    for statname, statfile in total.items():
+        with open(os.path.join(git_out_dir, statname + '.json.new'), 'w') as filepath:
+            json.dump(statfile, filepath, sort_keys=True, indent=2, default=decimal_default)
+        os.rename(os.path.join(git_out_dir, statname + '.json.new'), os.path.join(git_out_dir, statname+'.json'))
