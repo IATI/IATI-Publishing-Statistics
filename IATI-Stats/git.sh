@@ -2,7 +2,7 @@
 echo "LOG: `date '+%Y-%m-%d %H:%M:%S'` - Starting Stats generation"
 echo $GITOUT_DIR
 if [ "$GITOUT_DIR" = "" ]; then
-    GITOUT_DIR="gitout"
+    GITOUT_DIR="outputs"
 fi
 if [ "$COMMIT_SKIP_FILE" = "" ]; then
     COMMIT_SKIP_FILE=$GITOUT_DIR/gitaggregate/activities.json
@@ -14,7 +14,6 @@ mkdir -p $GITOUT_DIR/logs
 mkdir -p $GITOUT_DIR/commits
 mkdir -p $GITOUT_DIR/gitaggregate
 mkdir -p $GITOUT_DIR/gitaggregate-dated
-
 
 
 cd helpers
@@ -38,7 +37,6 @@ cp helpers/ckan.json $GITOUT_DIR
 echo "LOG: `date '+%Y-%m-%d %H:%M:%S'` - Clearing output directory"
 rm -r out
 
-# Bring the IATI raw data up-to-date
 cd data || exit $?
 # Checkout automatic, and make sure it is clean and up to date
 echo "LOG: `date '+%Y-%m-%d %H:%M:%S'` - Performing git operations on the data snapshot"
@@ -62,7 +60,6 @@ echo "LOG: `date '+%Y-%m-%d %H:%M:%S'` - Move and copy gitdate file"
 mv data/gitdate.json .
 cp gitdate.json $GITOUT_DIR
 
-
 # Store current and all commit hashes as variables
 cd data || exit $?
 # Get the latest commit hash
@@ -72,8 +69,6 @@ current_hash=`git rev-parse HEAD`
 commits=`git log --format=format:%H`
 cd .. || exit $?
 
-
-# Loop over commits and run stats code
 echo "LOG: `date '+%Y-%m-%d %H:%M:%S'` - Looping over commits"
 for commit in $commits; do
     if grep -q $commit $COMMIT_SKIP_FILE; then
@@ -114,8 +109,6 @@ for commit in $commits; do
 
         echo "LOG: `date '+%Y-%m-%d %H:%M:%S'` - Running gitaggregate.py for commit: $commit"
         python statsrunner/gitaggregate.py
-        echo "LOG: `date '+%Y-%m-%d %H:%M:%S'` - Running gitaggregate.py dated for commit: $commit"
-        python statsrunner/gitaggregate.py dated
         echo "LOG: `date '+%Y-%m-%d %H:%M:%S'` - Running gitaggregate-publisher.py for commit: $commit"
         python statsrunner/gitaggregate-publisher.py
         echo "LOG: `date '+%Y-%m-%d %H:%M:%S'` - Running gitaggregate-publisher.py dated for commit: $commit"
@@ -144,8 +137,6 @@ done
 cd $GITOUT_DIR || exit $?
 echo "LOG: `date '+%Y-%m-%d %H:%M:%S'` - Creating compressed file: gitaggregate"
 tar -czf gitaggregate.tar.gz gitaggregate
-echo "LOG: `date '+%Y-%m-%d %H:%M:%S'` - Creating compressed file: gitaggregate-dated"
-tar -czf gitaggregate-dated.tar.gz gitaggregate-dated
 echo "LOG: `date '+%Y-%m-%d %H:%M:%S'` - Creating compressed file: gitaggregate-publisher"
 tar -czf gitaggregate-publisher.tar.gz gitaggregate-publisher
 echo "LOG: `date '+%Y-%m-%d %H:%M:%S'` - Creating compressed file: gitaggregate-publisher-dated"

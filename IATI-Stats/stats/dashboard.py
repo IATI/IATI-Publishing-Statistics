@@ -6,20 +6,17 @@ You can choose a different set of tests by running calculate_stats.py with the `
 from __future__ import print_function
 from lxml import etree
 import datetime
-from collections import defaultdict, OrderedDict
+from collections import defaultdict
 from decimal import Decimal
 import decimal
-import os
 import re
 import json
-import subprocess
 import copy
 import csv
 
 from stats.common.decorators import *
 from stats.common import *
 
-import iatirulesets
 from helpers.currency_conversion import get_USD_value
 from dateutil.relativedelta import relativedelta
 
@@ -36,7 +33,7 @@ def add_years(d, years):
 
     """
     try:
-        return d.replace(year = d.year + years)
+        return d.replace(year=d.year + years)
     except ValueError:
         return d + (date(d.year + years, 1, 1) - date(d.year, 1, 1))
 
@@ -85,19 +82,7 @@ def convert_to_float(x):
         return 0
 
 
-# Import codelists
-## In order to test whether or not correct codelist values are being used in the data
-## we need to pull in data about how codelists map to elements
-def get_codelist_mapping(major_version):
-    codelist_mapping_xml = etree.parse('helpers/mapping-{}.xml'.format(major_version))
-    codelist_mappings = [ x.text for x in codelist_mapping_xml.xpath('mapping/path') ]
-    codelist_mappings = [ re.sub('^\/\/iati-activity', './',path) for path in codelist_mappings]
-    codelist_mappings = [ re.sub('^\/\/', './/', path) for path in codelist_mappings ]
-    return codelist_mappings
-
-codelist_mappings = { major_version: get_codelist_mapping(major_version) for major_version in ['1', '2'] }
-
-CODELISTS = {'1':{}, '2':{}}
+CODELISTS = {'1': {}, '2': {}}
 for major_version in ['1', '2']:
     for codelist_name in ['Version', 'ActivityStatus', 'Currency', 'Sector', 'SectorCategory', 'DocumentCategory', 'AidType', 'BudgetNotProvided']:
         CODELISTS[major_version][codelist_name] = set(c['code'] for c in json.load(open('helpers/codelists/{}/{}.json'.format(major_version, codelist_name)))['data'])
@@ -125,14 +110,13 @@ with open('helpers/transparency_indicator/reference_spend_data.csv', 'r') as csv
         if pub_registry_id in get_registry_id_matches().keys():
             pub_registry_id = get_registry_id_matches()[pub_registry_id]
 
-        reference_spend_data[pub_registry_id] = { 'publisher_name': line[0],
-                                                  '2014_ref_spend': line[2],
-                                                  '2015_ref_spend': line[6],
-                                                  '2015_official_forecast': line[10],
-                                                  'currency': line[11],
-                                                  'spend_data_error_reported': True if line[12] == 'Y' else False,
-                                                  'DAC': True if 'DAC' in line[3] else False }
-
+        reference_spend_data[pub_registry_id] = {'publisher_name': line[0],
+                                                 '2014_ref_spend': line[2],
+                                                 '2015_ref_spend': line[6],
+                                                 '2015_official_forecast': line[10],
+                                                 'currency': line[11],
+                                                 'spend_data_error_reported': True if line[12] == 'Y' else False,
+                                                 'DAC': True if 'DAC' in line[3] else False}
 
 def element_to_count_dict(element, path, count_dict, count_multiple=False):
     """
@@ -146,14 +130,13 @@ def element_to_count_dict(element, path, count_dict, count_multiple=False):
         count_dict[path] = 1
     for child in element:
         if type(child.tag) == str:
-            element_to_count_dict(child, path+'/'+child.tag, count_dict, count_multiple)
+            element_to_count_dict(child, path + '/' + child.tag, count_dict, count_multiple)
     for attribute in element.attrib:
         if count_multiple:
-            count_dict[path+'/@'+attribute] += 1
+            count_dict[path + '/@' + attribute] += 1
         else:
-            count_dict[path+'/@'+attribute] = 1
+            count_dict[path + '/@' + attribute] = 1
     return count_dict
-
 
 def valid_date(date_element):
     if date_element is None:
@@ -333,33 +316,6 @@ def get_language(major_version, iati_activity_obj, title_or_description_obj):
 class CommonSharedElements(object):
     blank = False
 
-    @no_aggregation
-    def iati_identifier(self):
-        try:
-            return self.element.find('iati-identifier').text
-        except AttributeError:
-            return None
-
-    @returns_numberdict
-    def reporting_orgs(self):
-        return {self.element.find('reporting-org').attrib.get('ref'):1}
-
-    @returns_numberdict
-    def participating_orgs(self):
-        return dict([ (x.attrib.get('ref'), 1) for x in self.element.findall('participating-org')])
-
-    @returns_numberdictdict
-    def participating_orgs_text(self):
-        return dict([ (x.attrib.get('ref'), {x.text:1}) for x in self.element.findall('participating-org')])
-
-    @returns_numberdictdict
-    def participating_orgs_by_role(self):
-        return dict([ (x.attrib.get('role'), {x.attrib.get('ref'):1}) for x in self.element.findall('participating-org')])
-
-    @returns_numberdict
-    def element_versions(self):
-        return { self.element.attrib.get('version'): 1 }
-
     @returns_numberdict
     @memoize
     def _major_version(self):
@@ -382,27 +338,15 @@ class CommonSharedElements(object):
         else:
             return '1.01'
 
-    @returns_numberdict
-    def _ruleset_passes(self):
-        out = {}
-        for ruleset_name in ['standard']:
-            ruleset = json.load(open('helpers/rulesets/{0}.json'.format(ruleset_name)), object_pairs_hook=OrderedDict)
-            out[ruleset_name] = int(iatirulesets.test_ruleset_subelement(ruleset, self.element))
-        return out
-
 
 class ActivityStats(CommonSharedElements):
     """ Stats calculated on a single iati-activity. """
     element = None
     blank = False
-    strict = False # (Setting this to true will ignore values that don't follow the schema)
+    strict = False  # (Setting this to true will ignore values that don't follow the schema)
     context = ''
     comprehensiveness_current_activity_status = None
-    now = datetime.datetime.now() # TODO Add option to set this to date of git commit
-
-    @returns_numberdict
-    def iati_identifiers(self):
-        return {self.element.find('iati-identifier').text:1}
+    now = datetime.datetime.now()  # TODO Add option to set this to date of git commit
 
     @returns_number
     def activities(self):
@@ -410,7 +354,7 @@ class ActivityStats(CommonSharedElements):
 
     @returns_numberdict
     def hierarchies(self):
-        return {self.element.attrib.get('hierarchy'):1}
+        return {self.element.attrib.get('hierarchy'): 1}
 
     def _budget_not_provided(self):
         if self.element.attrib.get('budget-not-provided') is not None:
@@ -429,13 +373,7 @@ class ActivityStats(CommonSharedElements):
             return defaultdict(lambda: out)
         else:
             hierarchy = self.element.attrib.get('hierarchy')
-            return { ('1' if hierarchy is None else hierarchy): out }
-
-    @returns_numberdict
-    def currencies(self):
-        currencies = [ x.find('value').get('currency') for x in self.element.findall('transaction') if x.find('value') is not None ]
-        currencies = [ c if c else self.element.get('default-currency') for c in currencies ]
-        return dict( (c,1) for c in currencies )
+            return {('1' if hierarchy is None else hierarchy): out}
 
     def _planned_start_code(self):
         if self._major_version() == '1':
@@ -529,10 +467,6 @@ class ActivityStats(CommonSharedElements):
                 debug(self, e)
 
     @returns_numberdict
-    def activities_per_year(self):
-        return {self.__get_start_year():1}
-
-    @returns_numberdict
     @memoize
     def elements(self):
         return element_to_count_dict(self.element, 'iati-activity', {})
@@ -541,58 +475,6 @@ class ActivityStats(CommonSharedElements):
     @memoize
     def elements_total(self):
         return element_to_count_dict(self.element, 'iati-activity', defaultdict(int), True)
-
-    @returns_numberdictdict
-    def codelist_values(self):
-        out = defaultdict(lambda: defaultdict(int))
-        for path in codelist_mappings[self._major_version()]:
-            for value in self.element.xpath(path):
-                out[path][value] += 1
-        return out
-
-    @returns_numberdictdict
-    def codelist_values_by_major_version(self):
-        out = defaultdict(lambda: defaultdict(int))
-        for path in codelist_mappings[self._major_version()]:
-            for value in self.element.xpath(path):
-                out[path][value] += 1
-        return { self._major_version(): out  }
-
-    @returns_numberdictdict
-    def boolean_values(self):
-        out = defaultdict(lambda: defaultdict(int))
-        for path in [
-                'conditions/@attached',
-                'crs-add/aidtype-flag/@significance',
-                'crs-add/other-flags/@significance',
-                'fss/@priority',
-                '@humanitarian',
-                'reporting-org/@secondary-reporter',
-                'result/indicator/@ascending',
-                'result/@aggregation-status',
-                'transaction/@humanitarian'
-                ]:
-            for value in self.element.xpath(path):
-                out[path][value] += 1
-        return out
-
-    @returns_numberdict
-    def provider_org(self):
-        out = defaultdict(int)
-        for transaction in self.element.findall('transaction'):
-            provider_org = transaction.find('provider-org')
-            if provider_org is not None:
-                out[provider_org.attrib.get('ref')] += 1
-        return out
-
-    @returns_numberdict
-    def receiver_org(self):
-        out = defaultdict(int)
-        for transaction in self.element.findall('transaction'):
-            receiver_org = transaction.find('receiver-org')
-            if receiver_org is not None:
-                out[receiver_org.attrib.get('ref')] += 1
-        return out
 
     @returns_numberdict
     def transactions_incoming_funds(self):
@@ -619,8 +501,8 @@ class ActivityStats(CommonSharedElements):
     def transaction_timing(self):
         today = self.now.date()
         def months_ago(n):
-            self.now.date() - datetime.timedelta(days=n*30)
-        out = { 30:0, 60:0, 90:0, 180:0, 360:0 }
+            self.now.date() - datetime.timedelta(days=n * 30)
+        out = {30: 0, 60: 0, 90: 0, 180: 0, 360: 0}
         for transaction in self.element.findall('transaction'):
             date = transaction_date(transaction)
             if date:
@@ -677,10 +559,6 @@ class ActivityStats(CommonSharedElements):
                 out[self._transaction_year(transaction)][get_currency(self, transaction)] += transaction_value
         return out
 
-    @returns_numberdictdict
-    def spend_currency_year(self):
-        return self._spend_currency_year(self.element.findall('transaction'))
-
     def _is_secondary_reported(self):
         """Tests if this activity has been secondary reported. Test based on if the
            secondary-reporter flag is set.
@@ -690,15 +568,14 @@ class ActivityStats(CommonSharedElements):
           False -- Secondary-reporter flag not set, or evaulates to False
         """
         return bool(filter(lambda x: int(x) if str(x).isdigit() else 0,
-                     self.element.xpath('reporting-org/@secondary-reporter')))
+                    self.element.xpath('reporting-org/@secondary-reporter')))
 
     @returns_dict
     def activities_secondary_reported(self):
         if self._is_secondary_reported():
-            return { self.element.find('iati-identifier').text: 0}
+            return {self.element.find('iati-identifier').text: 0}
         else:
             return {}
-
 
     @returns_numberdictdict
     def forwardlooking_currency_year(self):
@@ -763,7 +640,7 @@ class ActivityStats(CommonSharedElements):
             get_currency(self, transaction),
             transaction.xpath('value/text()')[0] if transaction.xpath('value/text()') else None,
             transaction_date(transaction)
-            ) for transaction in self.element.xpath('transaction[transaction-type/@code="{}"]'.format(self._commitment_code()))]
+        ) for transaction in self.element.xpath('transaction[transaction-type/@code="{}"]'.format(self._commitment_code()))]
 
         # Convert transaction values to USD and aggregate
         commitment_transactions_usd_total = sum([get_USD_value(x[0], x[1], x[2].year)
@@ -775,7 +652,7 @@ class ActivityStats(CommonSharedElements):
             get_currency(self, transaction),
             transaction.xpath('value/text()')[0] if transaction.xpath('value/text()') else None,
             transaction_date(transaction)
-            ) for transaction in self.element.xpath('transaction[transaction-type/@code="{}" or transaction-type/@code="{}"]'.format(self._disbursement_code(), self._expenditure_code()))]
+        ) for transaction in self.element.xpath('transaction[transaction-type/@code="{}" or transaction-type/@code="{}"]'.format(self._disbursement_code(), self._expenditure_code()))]
 
         # If the transaction date this year or older, convert transaction values to USD and aggregate
         exp_disb_transactions_usd_total = sum([get_USD_value(x[0], x[1], x[2].year)
@@ -828,8 +705,8 @@ class ActivityStats(CommonSharedElements):
         if len(self.element.xpath('reporting-org/@ref')) < 1:
             return False
 
-        return ((self.element.xpath('reporting-org/@ref')[0] in self.element.xpath("participating-org[@role='{}']/@ref|participating-org[@role='{}']/@ref".format(self._funding_code(), self._OrganisationRole_Extending_code())))
-            and (self.element.xpath('reporting-org/@ref')[0] not in self.element.xpath("participating-org[@role='{}']/@ref".format(self._OrganisationRole_Implementing_code()))))
+        return ((self.element.xpath('reporting-org/@ref')[0] in self.element.xpath("participating-org[@role='{}']/@ref|participating-org[@role='{}']/@ref".format(self._funding_code(), self._OrganisationRole_Extending_code()))) and
+                (self.element.xpath('reporting-org/@ref')[0] not in self.element.xpath("participating-org[@role='{}']/@ref".format(self._OrganisationRole_Implementing_code()))))
 
     @returns_dict
     def forwardlooking_excluded_activities(self):
@@ -841,8 +718,11 @@ class ActivityStats(CommonSharedElements):
         this_year = datetime.date.today().year
 
         # Retreive a dictionary with the activity identifier and the result for this and the next two years
-        return { self.element.find('iati-identifier').text: {year: int(self._forwardlooking_exclude_in_calculations(year))
-                    for year in range(this_year, this_year+3)} }
+        try:
+            return {self.element.find('iati-identifier').text: {year: int(self._forwardlooking_exclude_in_calculations(year))
+                    for year in range(this_year, this_year + 3)}}
+        except AttributeError as e:
+            print("Error {}: {}".format(self.context, e))
 
 
     @returns_numberdict
@@ -868,8 +748,8 @@ class ActivityStats(CommonSharedElements):
         date_code_runs = date_code_runs if date_code_runs else self.now.date()
 
         this_year = date_code_runs.year
-        return { year: int(self._forwardlooking_is_current(year) and not bool(self._forwardlooking_exclude_in_calculations(year=year, date_code_runs=date_code_runs)))
-                    for year in range(this_year, this_year+3) }
+        return {year: int(self._forwardlooking_is_current(year) and not bool(self._forwardlooking_exclude_in_calculations(year=year, date_code_runs=date_code_runs)))
+                for year in range(this_year, this_year + 3)}
 
     @returns_numberdict
     def forwardlooking_activities_with_budgets(self, date_code_runs=None):
@@ -889,9 +769,9 @@ class ActivityStats(CommonSharedElements):
         date_code_runs = date_code_runs if date_code_runs else self.now.date()
 
         this_year = int(date_code_runs.year)
-        budget_years = ([ budget_year(budget) for budget in self.element.findall('budget') ])
-        return { year: int(self._forwardlooking_is_current(year) and year in budget_years and not bool(self._forwardlooking_exclude_in_calculations(year=year, date_code_runs=date_code_runs)))
-                    for year in range(this_year, this_year+3) }
+        budget_years = ([budget_year(budget) for budget in self.element.findall('budget')])
+        return {year: int(self._forwardlooking_is_current(year) and year in budget_years and not bool(self._forwardlooking_exclude_in_calculations(year=year, date_code_runs=date_code_runs)))
+                for year in range(this_year, this_year + 3)}
 
     @returns_numberdict
     def forwardlooking_activities_with_budget_not_provided(self, date_code_runs=None):
@@ -909,7 +789,7 @@ class ActivityStats(CommonSharedElements):
         this_year = int(date_code_runs.year)
         bnp = self._budget_not_provided() is not None
         return {year: int(self._forwardlooking_is_current(year) and bnp > 0 and not bool(self._forwardlooking_exclude_in_calculations(year=year, date_code_runs=date_code_runs)))
-                for year in range(this_year, this_year+3)}
+                for year in range(this_year, this_year + 3)}
 
     @memoize
     def _comprehensiveness_is_current(self):
@@ -923,8 +803,8 @@ class ActivityStats(CommonSharedElements):
         activity_status_code = self.element.xpath('activity-status/@code')
 
         # Get the end dates for this activity as lists
-        activity_planned_end_dates = [ iso_date(x) for x in self.element.xpath('activity-date[@type="{}"]'.format(self._planned_end_code())) if iso_date(x) ]
-        activity_actual_end_dates = [ iso_date(x) for x in self.element.xpath('activity-date[@type="{}"]'.format(self._actual_end_code())) if iso_date(x) ]
+        activity_planned_end_dates = [iso_date(x) for x in self.element.xpath('activity-date[@type="{}"]'.format(self._planned_end_code())) if iso_date(x)]
+        activity_actual_end_dates = [iso_date(x) for x in self.element.xpath('activity-date[@type="{}"]'.format(self._actual_end_code())) if iso_date(x)]
 
         # If there is no planned end date AND activity-status/@code is 2 (implementing) or 4 (post-completion), then this is a current activity
         if not(activity_planned_end_dates) and activity_status_code:
@@ -934,13 +814,13 @@ class ActivityStats(CommonSharedElements):
 
         # If the actual end date is within the last year, then this is a current activity
         for actual_end_date in activity_actual_end_dates:
-            if (actual_end_date>=add_years(self.today, -1)) and (actual_end_date <= self.today):
+            if (actual_end_date >= add_years(self.today, -1)) and (actual_end_date <= self.today):
                 self.comprehensiveness_current_activity_status = 2
                 return True
 
         # If the planned end date is greater than today, then this is a current activity
         for planned_end_date in activity_planned_end_dates:
-            if planned_end_date>=self.today:
+            if planned_end_date >= self.today:
                 self.comprehensiveness_current_activity_status = 3
                 return True
 
@@ -951,7 +831,10 @@ class ActivityStats(CommonSharedElements):
     @returns_dict
     def comprehensiveness_current_activities(self):
         """Outputs whether each activity is considered current for the purposes of comprehensiveness calculations"""
-        return {self.element.find('iati-identifier').text:self.comprehensiveness_current_activity_status}
+        try:
+            return {self.element.find('iati-identifier').text: self.comprehensiveness_current_activity_status}
+        except AttributeError as e:
+            print("Error {}: {}".format(self.context, e))
 
     def _is_recipient_language_used(self):
         """If there is only 1 recipient-country, test if one of the languages for that country is used
@@ -969,12 +852,11 @@ class ActivityStats(CommonSharedElements):
             # Get lists of the languages used in the title and descripton elements
             langs_in_title = []
             for title_elem in self.element.findall('title'):
-               langs_in_title.extend(get_language(self._major_version(), self.element, title_elem))
+                langs_in_title.extend(get_language(self._major_version(), self.element, title_elem))
 
             langs_in_description = []
             for descripton_elem in self.element.findall('description'):
-               langs_in_description.extend(get_language(self._major_version(), self.element, descripton_elem))
-
+                langs_in_description.extend(get_language(self._major_version(), self.element, descripton_elem))
 
             # Test if the languages used for the title and description are in the list of country langs
             if len(set(langs_in_title).intersection(country_langs)) > 0 and len(set(langs_in_description).intersection(country_langs)) > 0:
@@ -1134,12 +1016,12 @@ class ActivityStats(CommonSharedElements):
                     empty_or_percentage_sum_is_100('recipient-country|recipient-region')),
                 'transaction_commitment': (
                     bools['transaction_commitment'] and
-                    all([ valid_value(x.find('value')) for x in bools['transaction_commitment'] ]) and
+                    all([valid_value(x.find('value')) for x in bools['transaction_commitment']]) and
                     all_true_and_not_empty(any(valid_date(x) for x in t.xpath('transaction-date|value')) for t in bools['transaction_commitment'])
                     ),
                 'transaction_spend': (
                     bools['transaction_spend'] and
-                    all([ valid_value(x.find('value')) for x in bools['transaction_spend'] ]) and
+                    all([valid_value(x.find('value')) for x in bools['transaction_spend']]) and
                     all_true_and_not_empty(any(valid_date(x) for x in t.xpath('transaction-date|value')) for t in bools['transaction_spend'])
                     ),
                 'transaction_currency': all(
@@ -1183,20 +1065,20 @@ class ActivityStats(CommonSharedElements):
     @returns_numberdict
     def comprehensiveness(self):
         if self._comprehensiveness_is_current():
-            return { k:(1 if v and (
+            return {k: (1 if v and (
                                     k not in self.comprehensiveness_denominators()
                                     or self.comprehensiveness_denominators()[k]
-                                   ) else 0) for k,v in self._comprehensiveness_bools().items() }
+                                   ) else 0) for k, v in self._comprehensiveness_bools().items()}
         else:
             return {}
 
     @returns_numberdict
     def comprehensiveness_with_validation(self):
         if self._comprehensiveness_is_current():
-            return { k:(1 if v and (
+            return {k: (1 if v and (
                                     k not in self.comprehensiveness_denominators()
                                     or self.comprehensiveness_denominators()[k]
-                                   ) else 0) for k,v in self._comprehensiveness_with_validation_bools().items() }
+                                   ) else 0) for k, v in self._comprehensiveness_with_validation_bools().items()}
         else:
             return {}
 
@@ -1287,15 +1169,6 @@ class ActivityStats(CommonSharedElements):
         return out
 
     @returns_numberdictdict
-    def activity_dates(self):
-        out = defaultdict(lambda: defaultdict(int))
-        for activity_date in self.element.findall('activity-date'):
-            type_code = activity_date.attrib.get('type')
-            date = iso_date(activity_date)
-            out[type_code][unicode(date)] += 1
-        return out
-
-    @returns_numberdictdict
     def count_transactions_by_type_by_year(self):
         out = defaultdict(lambda: defaultdict(int))
         for transaction in self.element.findall('transaction'):
@@ -1311,9 +1184,11 @@ class ActivityStats(CommonSharedElements):
                     transaction.find('transaction-type').attrib.get('code') in [self._incoming_funds_code(), self._commitment_code(), self._disbursement_code(), self._expenditure_code()]):
 
                 # Set transaction_value if a value exists for this transaction. Else set to 0
-                transaction_value = 0 if value is None else Decimal(value.text)
-
-                out[self._transaction_type_code(transaction)][get_currency(self, transaction)][self._transaction_year(transaction)] += transaction_value
+                try:
+                    transaction_value = 0 if value is None or value.text is None else Decimal(value.text)
+                    out[self._transaction_type_code(transaction)][get_currency(self, transaction)][self._transaction_year(transaction)] += transaction_value
+                except decimal.InvalidOperation as e:
+                    print("Error {}: {}".format(self.context, e))
         return out
 
     @returns_numberdictdictdict
@@ -1388,77 +1263,14 @@ class GenericFileStats(object):
     blank = False
 
     @returns_numberdict
-    def versions(self):
-        return { self.root.attrib.get('version'): 1 }
-
-    @returns_numberdict
-    def version_mismatch(self):
-        file_version = self.root.attrib.get('version')
-        element_versions = self.root.xpath('//iati-activity/@version')
-        element_versions = list(set(element_versions))
-        return {
-            'true' if ( file_version is not None and len(element_versions) and [file_version] != element_versions ) else 'false'
-            :1}
-
-    @returns_numberdict
-    def validation(self):
-        version = self.root.attrib.get('version')
-        if version in [None, '1', '1.0', '1.00']: version = '1.01'
-        try:
-            with open('helpers/schemas/{0}/{1}'.format(version, self.schema_name)) as f:
-                xmlschema_doc = etree.parse(f)
-                xmlschema = etree.XMLSchema(xmlschema_doc)
-                if xmlschema.validate(self.doc):
-                    return {'pass':1}
-                else:
-                    return {'fail':1}
-        except IOError:
-            debug(self, 'Unsupported version \'{0}\' '.format(version))
-            return {'fail':1}
-
-    @returns_numberdict
     def wrong_roots(self):
         tag = self.root.tag
         try:
             ckan_type = ckan[publisher_re.match(self.fname).group(1)][self.fname]['extras']['filetype']
             if not ((tag == 'iati-organisations' and ckan_type == '"organisation"') or (tag == 'iati-activities' and ckan_type == '"activity"')):
-                return {tag:1}
+                return {tag: 1}
         except KeyError:
             pass
-
-    @returns_number
-    def file_size(self):
-        return os.stat(self.inputfile).st_size
-
-    @returns_numberdict
-    def file_size_bins(self):
-        file_size = os.stat(self.inputfile).st_size
-        if file_size < 1*1024*1024:
-            return {'<1MB': 1}
-        elif file_size < 5*1024*1024:
-            return {'1-5MB': 1}
-        elif file_size < 10*1024*1024:
-            return {'5-10MB': 1}
-        elif file_size < 20*1024*1024:
-            return {'10-20MB': 1}
-        else:
-            return {'>20MB': 1}
-
-    """
-    @returns_date
-    @memoize
-    def updated(self):
-        if self.inputfile.startswith('data/'):
-            cwd = os.getcwd()
-            os.chdir('data')
-            out = subprocess.check_output(['git', 'log', '-1', '--format="%ai"', '--', self.inputfile[5:]]).strip('"\n')
-            os.chdir(cwd)
-            return out
-
-    @returns_numberdict
-    def updated_dates(self):
-        return {self.updated().split(' ')[0]:1}
-    """
 
     @returns_number
     def empty(self):
@@ -1469,15 +1281,6 @@ class GenericFileStats(object):
         # Must be valid XML to have loaded this function
         return 0
 
-    def nonstandardroots(self):
-        return 0
-
-    def toolarge(self):
-        return 0
-
-
-
-
 
 class ActivityFileStats(GenericFileStats):
     """ Stats calculated for an IATI Activity XML file. """
@@ -1485,17 +1288,12 @@ class ActivityFileStats(GenericFileStats):
     root = None
     schema_name = 'iati-activities-schema.xsd'
 
-    @returns_number
-    def activity_files(self):
-        return 1
-
-
 
 class PublisherStats(object):
     """ Stats calculated for an IATI Publisher (directory in the data directory). """
     aggregated = None
     blank = False
-    strict = False # (Setting this to true will ignore values that don't follow the schema)
+    strict = False  # (Setting this to true will ignore values that don't follow the schema)
     context = ''
 
     @returns_dict
@@ -1507,7 +1305,7 @@ class PublisherStats(object):
                 return None
 
         hierarchies = self.aggregated['by_hierarchy'].keys()
-        hierarchies_ints = [ x for x in map(int_or_None, hierarchies) if x is not None ]
+        hierarchies_ints = [x for x in map(int_or_None, hierarchies) if x is not None]
         if not hierarchies_ints:
             return {}
         bottom_hierarchy_key = str(max(hierarchies_ints))
@@ -1516,36 +1314,9 @@ class PublisherStats(object):
         except KeyError:
             return {}
 
-    @returns_numberdict
-    def publishers_per_version(self):
-        versions = self.aggregated['versions'].keys()
-        return dict((v,1) for v in versions)
-
     @returns_number
     def publishers(self):
         return 1
-
-    @returns_numberdict
-    def publishers_validation(self):
-        if 'fail' in self.aggregated['validation']:
-            return {'fail':1}
-        else:
-            return {'pass':1}
-
-    @returns_numberdict
-    def publisher_has_org_file(self):
-        if 'organisation_files' in self.aggregated and self.aggregated['organisation_files'] > 0:
-            return {'yes':1}
-        else:
-            return {'no':1}
-
-    # The following two functions have different names to the AllData equivalents
-    # This is because the aggregation of the publisher level functions will ignore duplication between publishers
-
-    @returns_number
-    @memoize
-    def publisher_unique_identifiers(self):
-        return len(self.aggregated['iati_identifiers'])
 
     @returns_dict
     def reference_spend_data(self):
@@ -1556,15 +1327,15 @@ class PublisherStats(object):
         if self.folder in reference_spend_data.keys():
 
             # Note that the values may be strings or human-readable numbers (i.e. with commas to seperate thousands)
-            return { '2014': { 'ref_spend': reference_spend_data[self.folder]['2014_ref_spend'].replace(',','') if is_number(reference_spend_data[self.folder]['2014_ref_spend'].replace(',','')) else '',
-                               'currency': reference_spend_data[self.folder]['currency'],
-                               'official_forecast_usd': '' },
-                     '2015': { 'ref_spend': reference_spend_data[self.folder]['2015_ref_spend'].replace(',','') if is_number(reference_spend_data[self.folder]['2015_ref_spend'].replace(',','')) else '',
-                               'currency': reference_spend_data[self.folder]['currency'],
-                               'official_forecast_usd': reference_spend_data[self.folder]['2015_official_forecast'].replace(',','') if is_number(reference_spend_data[self.folder]['2015_official_forecast'].replace(',','')) else '' },
-                     'spend_data_error_reported': 1 if reference_spend_data[self.folder]['spend_data_error_reported'] else 0,
-                     'DAC': 1 if reference_spend_data[self.folder]['DAC'] else 0
-                   }
+            return {'2014': {'ref_spend': reference_spend_data[self.folder]['2014_ref_spend'].replace(',','') if is_number(reference_spend_data[self.folder]['2014_ref_spend'].replace(',','')) else '',
+                             'currency': reference_spend_data[self.folder]['currency'],
+                             'official_forecast_usd': ''},
+                    '2015': {'ref_spend': reference_spend_data[self.folder]['2015_ref_spend'].replace(',','') if is_number(reference_spend_data[self.folder]['2015_ref_spend'].replace(',','')) else '',
+                             'currency': reference_spend_data[self.folder]['currency'],
+                             'official_forecast_usd': reference_spend_data[self.folder]['2015_official_forecast'].replace(',','') if is_number(reference_spend_data[self.folder]['2015_official_forecast'].replace(',','')) else '' },
+                    'spend_data_error_reported': 1 if reference_spend_data[self.folder]['spend_data_error_reported'] else 0,
+                    'DAC': 1 if reference_spend_data[self.folder]['DAC'] else 0
+                    }
         else:
             return {}
 
@@ -1592,10 +1363,6 @@ class PublisherStats(object):
         output['DAC'] = self.reference_spend_data().get('DAC', 0)
         return output
 
-    @returns_numberdict
-    def publisher_duplicate_identifiers(self):
-        return {k:v for k,v in self.aggregated['iati_identifiers'].items() if v>1}
-
     def _timeliness_transactions(self):
         tt = self.aggregated['transaction_timing']
         if [tt['30'], tt['60'], tt['90']].count(0) <= 1:
@@ -1614,21 +1381,21 @@ class PublisherStats(object):
         def previous_months_generator(d):
             year = d.year
             month = d.month
-            for i in range(0,12):
+            for i in range(0, 12):
                 month -= 1
                 if month <= 0:
                     year -= 1
                     month = 12
-                yield '{}-{}'.format(year,str(month).zfill(2))
+                yield '{}-{}'.format(year, str(month).zfill(2))
         previous_months = list(previous_months_generator(self.today))
         transaction_months_with_year = self.aggregated['transaction_months_with_year']
-        if [ x in transaction_months_with_year  for x in previous_months[:3] ].count(True) >= 2:
+        if [x in transaction_months_with_year for x in previous_months[:3]].count(True) >= 2:
             return 'One month'
-        elif [ x in transaction_months_with_year  for x in previous_months[:3] ].count(True) >= 1:
+        elif [x in transaction_months_with_year for x in previous_months[:3]].count(True) >= 1:
             return 'A quarter'
-        elif True in [ x in transaction_months_with_year  for x in previous_months[:6] ]:
+        elif True in [x in transaction_months_with_year for x in previous_months[:6]]:
             return 'Six months'
-        elif  True in [ x in transaction_months_with_year  for x in previous_months[:12] ]:
+        elif True in [x in transaction_months_with_year for x in previous_months[:12]]:
             return 'One year'
         else:
             return 'More than one year'
@@ -1637,7 +1404,7 @@ class PublisherStats(object):
         transaction_months = self.aggregated['transaction_months'].keys()
         if len(transaction_months) == 12:
             return 'Monthly'
-        elif len(set(map(lambda x: (int(x)-1)//3, transaction_months))) == 4:
+        elif len(set(map(lambda x: (int(x) - 1) // 3, transaction_months))) == 4:
             return 'Quarterly'
         elif len(transaction_months) >= 1:
             return 'Annually'
@@ -1651,15 +1418,15 @@ class PublisherStats(object):
         budgets = sum(budget_lengths.values())
         i = 0
         median = None
-        for k,v in sorted([ (int(k),v) for k,v in budget_lengths.items()]):
+        for k, v in sorted([(int(k), v) for k, v in budget_lengths.items()]):
             i += v
-            if i >= (budgets/2.0):
+            if i >= (budgets / 2.0):
                 if median:
                     # Handle the case where the median falls between two frequency bins
                     median = (median + k) / 2.0
                 else:
                     median = k
-                if i != (budgets/2.0):
+                if i != (budgets / 2.0):
                     break
         return median
 
@@ -1673,26 +1440,6 @@ class PublisherStats(object):
             return 'Annually'
         else:
             return 'Beyond one year'
-
-    @no_aggregation
-    def date_extremes(self):
-        notnone = lambda x: x is not None
-        activity_dates = { k:filter(notnone, map(iso_date_match, v.keys()))
-                for k,v in self.aggregated['activity_dates'].items() }
-        min_dates = { k:min(v) for k,v in activity_dates.items() if v }
-        max_dates = { k:max(v) for k,v in activity_dates.items() if v }
-        overall_min = unicode(min(min_dates.values())) if min_dates else None
-        overall_max = unicode(max(max_dates.values())) if min_dates else None
-        return {
-            'min': {
-                'overall': overall_min,
-                'by_type': { k:unicode(v) for k,v in min_dates.items() }
-            },
-            'max': {
-                'overall': overall_max,
-                'by_type': { k:unicode(v) for k,v in max_dates.items() }
-            },
-        }
 
     @no_aggregation
     def most_recent_transaction_date(self):
@@ -1712,44 +1459,18 @@ class PublisherStats(object):
         if transaction_dates:
             return unicode(max(transaction_dates))
 
+
 class OrganisationFileStats(GenericFileStats):
     """ Stats calculated for an IATI Organisation XML file. """
     doc = None
     root = None
     schema_name = 'iati-organisations-schema.xsd'
 
-    @returns_number
-    def organisation_files(self):
-        return 1
-
 
 class OrganisationStats(CommonSharedElements):
     """ Stats calculated on a single iati-organisation. """
     blank = False
 
-    @returns_number
-    def organisations(self):
-        return 1
-
-    @returns_numberdict
-    def elements(self):
-        return element_to_count_dict(self.element, 'iati-organisation', {})
-
-    @returns_numberdict
-    def elements_total(self):
-        return element_to_count_dict(self.element, 'iati-organisation', defaultdict(int), True)
-
-    @returns_numberdict
-    def element_versions(self):
-        return { self.element.attrib.get('version'): 1 }
 
 class AllDataStats(object):
     blank = False
-
-    @returns_number
-    def unique_identifiers(self):
-        return len(self.aggregated['iati_identifiers'])
-
-    @returns_numberdict
-    def duplicate_identifiers(self):
-        return {k:v for k,v in self.aggregated['iati_identifiers'].items() if v>1}

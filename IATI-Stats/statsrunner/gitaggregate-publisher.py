@@ -1,31 +1,22 @@
 import datetime
 import decimal
 import json
-import os
 import sys
+import os
 
 from collections import defaultdict
 from common import decimal_default
 
-GITOUT_DIR = os.environ.get('GITOUT_DIR') or 'gitout'
+GITOUT_DIR = os.environ.get('GITOUT_DIR') or 'outputs'
 
 # Only aggregate certain json stats files at publisher level
 # These should be small stats files that will not consume large amounts of
 # memory/disk space if aggregated over time
 whitelisted_stats_files = [
     'activities',
-    'activity_files',
     'bottom_hierarchy',
     'empty',
     'invalidxml',
-    'file_size',
-    'nonstandardroots',
-    'organisation_files',
-    'publisher_unique_identifiers',
-    'toolarge',
-    'validation',
-    'versions',
-    'activities_with_future_transactions',
     'latest_transaction_date',
     'transaction_dates_hash',
     'most_recent_transaction_date'
@@ -38,8 +29,6 @@ dated = len(sys.argv) > 1 and sys.argv[1] == 'dated'
 if dated:
     gitdates = json.load(open('gitdate.json'))
 
-# Loop over folders in the 'commits' directory
-# Variable commit will be the commit hash
 for commit in os.listdir(os.path.join(GITOUT_DIR, 'commits')):
     print "gitaggregate-publisher for commit {}".format(commit)
 
