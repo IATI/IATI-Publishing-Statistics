@@ -4,7 +4,7 @@ echo "LOG: `date '+%Y-%m-%d %H:%M:%S'` - Starting publisher stats regeneration"
 echo "LOG: `date '+%Y-%m-%d %H:%M:%S'` - Running IATI-Registry-Refresher"
 cd ../IATI-Registry-Refresher
 if [ ! -d data ]; then
-    git clone git://dashboard.iatistandard.org/IATI-Data-Snapshot.git data
+    git clone git://dashboard.iatistandard.org/IATI-Data-Snapshot.git IATI-Registry-Refresher/data
 fi
 ./git.sh > ../logs/$(date +\%Y\%m\%d)-rr.log 2>&1
 for i in data/*/; do
