@@ -127,6 +127,10 @@ for commit in $commits; do
             tar -czf current.tar.gz current
             cd .. || exit $?
         fi
+        if [ "$ALL_COMMITS" = "" ]; then
+            echo "LOG: `date '+%Y-%m-%d %H:%M:%S'` - Breaking out of commit logic for commit: $commit"
+            break
+        fi
     fi
 done
 
