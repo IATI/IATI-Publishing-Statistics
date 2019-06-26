@@ -10,13 +10,13 @@ outputs
 config.py
 .coverage
 gitdate.json
-IATI-Stats/helpers/ckan/
-IATI-Stats/helpers/ckan.json
+IATI-Stats/helpers/ckan
+IATI-Stats/helpers/ckan.json*
 IATI-Stats/helpers/mapping.xml
 IATI-Stats/helpers/schemas/
 IATI-Stats/helpers/IATI-Rulesets/
 IATI-Stats/helpers/codelists/
 IATI-Stats/helpers/mapping-*
-IATI-Stats/helpers/registry_id_relationships.csv
+IATI-Stats/helpers/registry_id_relationships.csv*
 IATI-Stats/helpers/rulesets
-IATI-Dashboard/web
+IATI-Dashboard/web*
