@@ -1,10 +1,10 @@
 #!/bin/bash
 echo "LOG: `date '+%Y-%m-%d %H:%M:%S'` - Starting publisher stats regeneration"
-cd ../IATI-Registry-Refresher
-if [ ! -d data ]; then
+if [ ! -d ../IATI-Registry-Refresher/data ]; then
 	echo "LOG: `date '+%Y-%m-%d %H:%M:%S'` - Cloning IATI-Data-Snapshot"
-    git clone git://dashboard.iatistandard.org/IATI-Data-Snapshot.git data
+    git clone git://dashboard.iatistandard.org/IATI-Data-Snapshot.git ../IATI-Registry-Refresher/data
 fi
+cd ../IATI-Registry-Refresher
 echo "LOG: `date '+%Y-%m-%d %H:%M:%S'` - Running IATI-Registry-Refresher"
 ./git.sh > ../logs/$(date +\%Y\%m\%d)-rr.log 2>&1
 for i in data/*/; do
