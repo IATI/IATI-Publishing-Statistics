@@ -40,7 +40,7 @@ def iso_date(element):
     return iso_date_match(raw_date)
 
 def transaction_date(transaction):
-    """Returns a datetime object for an input transaction object. 
+    """Returns a datetime object for an input transaction object.
        A transaction-date is preferred, although if not available, returns value/value-date
        Returns None if neither found.
 
