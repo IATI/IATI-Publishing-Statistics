@@ -614,6 +614,12 @@ class ActivityStats(CommonSharedElements):
            or equal to the year passed to this function, or ii) no (actual or planned) end years at all.
            Returns: True or False
         """
+        # Get list of years for each of the planned-start and actual-start dates
+        activity_start_years = [
+            iso_date(x).year
+            for x in self.element.xpath('activity-date[@type="{}" or @type="{}"]'.format(self._planned_start_code(),self._actual_start_code()))
+            if iso_date(x)
+        ]
         # Get list of years for each of the planned-end and actual-end dates
         activity_end_years = [
             iso_date(x).year
@@ -621,8 +627,9 @@ class ActivityStats(CommonSharedElements):
             if iso_date(x)
         ]
         # Return boolean. True if activity_end_years is empty, or at least one of the actual/planned
-        # end years is greater or equal to the year passed to this function
-        return (not activity_end_years) or any(activity_end_year>=year for activity_end_year in activity_end_years)
+        # end years is greater or equal to the year passed to this function, and the activity starts
+        # or has already started by that year.
+        return (not activity_end_years) or (any(activity_end_year >= year for activity_end_year in activity_end_years) and any(activity_start_year <= year for activity_start_year in activity_start_years))
 
     def _get_ratio_commitments_disbursements(self, year):
         """ Calculates the ratio of commitments vs total amount disbursed or expended in or before the

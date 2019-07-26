@@ -24,7 +24,7 @@ except OSError:
 # Get a list containing the names of the entries in the directory
 git_out_files = os.listdir(git_out_dir)
 
-for fname in os.listdir(os.path.join(GITOUT_DIR, 'aggregated')):
+for fname in os.listdir(os.path.join(GITOUT_DIR, 'current/aggregated')):
     if not fname.endswith('.json'):
         continue
 
@@ -35,7 +35,7 @@ for fname in os.listdir(os.path.join(GITOUT_DIR, 'aggregated')):
 
     print 'Adding to {} for file: {}'.format('gitaggregate', fname)
 
-    commit_json_fname = os.path.join(GITOUT_DIR, 'aggregated', fname)
+    commit_json_fname = os.path.join(GITOUT_DIR, 'current/aggregated', fname)
 
     # Load the current file conents to memory, or set as an empty dictionary
     if fname in git_out_files:
