@@ -11,7 +11,7 @@ This repository contains the split of the IATI-Dashboard and IATI-Publishing-Sta
 Requirements
 -------------
 
-- Python 2.7
+- Python 3.7
 - python-dev
 - python-virtualenv
 - pip

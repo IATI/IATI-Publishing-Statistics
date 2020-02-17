@@ -2,11 +2,14 @@ import csv
 import datetime
 import re
 
+
 def debug(stats, error):
     """ prints debugging information for a given stats object and error """
-    print unicode(error)+stats.context 
+    print(error + stats.context)
+
 
 xsDateRegex = re.compile('(-?[0-9]{4,})-([0-9]{2})-([0-9]{2})')
+
 
 def iso_date_match(raw_date):
     """Return a datetime object for a given textual ISO date string
@@ -20,11 +23,12 @@ def iso_date_match(raw_date):
             try:
                 return datetime.date(*map(int, m1.groups()))
             except ValueError:
-                # A ValueError occurs when there is an invalid raw_date, 
+                # A ValueError occurs when there is an invalid raw_date,
                 # for example '2015-11-31' or '2015-13-01'
-                return None    
+                return None
         else:
             return None
+
 
 def iso_date(element):
     """Return a datetime object for a given XML element either i) an 'iso-date' attribute or ii) an iso date as text
@@ -38,6 +42,7 @@ def iso_date(element):
     if not raw_date:
         raw_date = element.text
     return iso_date_match(raw_date)
+
 
 def transaction_date(transaction):
     """Returns a datetime object for an input transaction object.
@@ -54,6 +59,7 @@ def transaction_date(transaction):
     elif transaction.find('value') is not None:
         return iso_date_match(transaction.find('value').attrib.get('value-date'))
 
+
 def budget_year(budget):
     """Returns the year of an inputted object (normally a budget).
 
@@ -67,9 +73,7 @@ def budget_year(budget):
 
     if start and end:
         if (end - start).days <= 370:
-            if end.year == start.year:
-                return end.year
-            elif end.month >= 7:
+            if end.month >= 7:
                 return end.year
             else:
                 return end.year - 1
@@ -77,6 +81,7 @@ def budget_year(budget):
             return None
     else:
         return None
+
 
 def planned_disbursement_year(planned_disbursement):
     start = iso_date(planned_disbursement.find('period-start'))
@@ -89,17 +94,18 @@ def planned_disbursement_year(planned_disbursement):
     else:
         return None
 
+
 def get_registry_id_matches():
     """Returns a dictionary of publishers who have modified their registry ID
-    Returns: Dictionary, where the key is the old registry ID, and the corresponding 
+    Returns: Dictionary, where the key is the old registry ID, and the corresponding
              value is the registry ID that data should be mapped to
     NOTE: Any changes to this function should be replicated in:
           https://github.com/IATI/IATI-Dashboard/blob/master/data.py#L143
     """
 
     # Load registry IDs for publishers who have changed their registry ID
-    reader = csv.DictReader(open('helpers/registry_id_relationships.csv', 'rU'), delimiter=',')
-    
+    reader = csv.DictReader(open('helpers/registry_id_relationships.csv'), delimiter=',')
+
     # Load this data into a dictonary
     registry_matches = {}
     for row in reader:
