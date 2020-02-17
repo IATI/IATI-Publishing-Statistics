@@ -1,8 +1,7 @@
 import json
-from collections import OrderedDict
+from collections import OrderedDict, MutableMapping
 import os
 import re
-import UserDict
 import csv
 from decimal import Decimal
 
@@ -25,10 +24,11 @@ def memoize(f):
     return wrapper
 
 
-class GroupFiles(object, UserDict.DictMixin):
+class GroupFiles(MutableMapping):
     def __init__(self, inputdict):
         self.inputdict = inputdict
         self.cache = {}
+
 
     def __getitem__(self, key):
         if key in self.cache:
@@ -54,7 +54,26 @@ class GroupFiles(object, UserDict.DictMixin):
         return out
 
 
-class JSONDir(object, UserDict.DictMixin):
+    def __len__(self):
+        return len(self.inputdict)
+
+
+    def __iter__(self):
+        return iter(self.inputdict)
+
+
+    def __delitem__(self, key):
+        try:
+            del self.inputdict[key]
+        except KeyError:
+            pass
+
+
+    def __setitem__(self, key, value):
+        super(GroupFiles, self).__setitem__(key, value)
+
+
+class JSONDir(MutableMapping):
     """Produces an object, to be used to access JSON-formatted publisher data and return
        this as an ordered dictionary (with nested dictionaries, if appropriate).
        Use of this class removes the need to load large amounts of data into memory.
@@ -65,6 +84,26 @@ class JSONDir(object, UserDict.DictMixin):
            the object.
         """
         self.folder = folder
+
+
+    def __len__(self):
+        return len(self.keys())
+
+
+    def __delitem__(self, key):
+        try:
+            del self.folder[key]
+        except KeyError:
+            pass
+
+
+    def __repr__(self):
+        return '{}, JSONDIR({})'.format(super(JSONDir, self).__repr__(), self.__dict__)
+
+
+    def __setitem__(self, key, value):
+        super(JSONDir, self).__setitem__(key, value)
+
 
     @memoize
     def __getitem__(self, key):
@@ -90,7 +129,7 @@ class JSONDir(object, UserDict.DictMixin):
                 # Look over the set of changed registry IDs
                 for previous_id, current_id in get_registry_id_matches().items():
                     folder = self.folder
-                    previous_path = os.path.join(folder.replace(current_id, previous_id), key+'.json')
+                    previous_path = os.path.join(folder.replace(current_id, previous_id), key + '.json')
                     #  If this publisher has had an old ID and there is data for it
                     if (current_id == self.get_publisher_name()) and os.path.exists(previous_path):
                         # Get the corresponding value for the old publisher ID, and merge with the existing value for this publisher
@@ -100,7 +139,7 @@ class JSONDir(object, UserDict.DictMixin):
                             # FIXME i) Should deep_merge attempt to sort this ordereddict ii) Should there be an attempt to aggregate/average conflicting values?
         else:
             # No value found as either a folder or json file
-            raise KeyError
+            raise KeyError(key)
 
         return data
 
@@ -239,13 +278,8 @@ codelist_sets = {
 #  Simple look up to map publisher id to a publishers given name (title)
 publisher_name = {publisher: publisher_json['result']['title'] for publisher, publisher_json in ckan_publishers.items()}
 #  Create a list of tuples ordered by publisher given name titles - this allows us to display lists of publishers in alphabetical order
-publishers_ordered_by_title = []
-for publisher in current_stats['inverted_publisher']['activities']:
-    try:
-        publishers_ordered_by_title.append((publisher_name[publisher], publisher))
-    except KeyError:
-        print("Publisher {} not in ckan file".format(publisher))
-publishers_ordered_by_title.sort(key=lambda x: unicode.lower(x[0]))
+publishers_ordered_by_title = [(publisher_name[publisher], publisher) for publisher in current_stats['inverted_publisher']['activities'] if publisher in publisher_name]
+publishers_ordered_by_title.sort(key=lambda x: (x[0]).lower())
 
 # List of publishers who report all their activities as a secondary publisher
 secondary_publishers = [publisher for publisher, stats in JSONDir('./stats-calculated/current/aggregated-publisher').items()
