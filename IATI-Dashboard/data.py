@@ -212,7 +212,7 @@ def deep_merge(obj1, obj2):
     """
 
     # Iterate through keys
-    for key in obj1:
+    for key in obj1.copy():
         # If this is value, we've hit the bottom, copy all of obj2 into obj1
         if type(obj1[key]) is not OrderedDict:
             for key2 in obj2:

@@ -40,7 +40,7 @@ with open(os.path.join('out', 'publishers.csv'), 'w') as fp:
     for d in publisher_dicts():
         writer.writerow(d)
 
-publishers = data.current_stats['inverted_publisher']['activities'].keys()
+publishers = list(data.current_stats['inverted_publisher']['activities'].keys())
 
 with open(os.path.join('out', 'elements.csv'), 'w') as fp:
     writer = csv.DictWriter(fp, ['Element'] + publishers)
