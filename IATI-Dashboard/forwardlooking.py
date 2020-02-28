@@ -7,7 +7,7 @@ import datetime
 this_year = datetime.date.today().year
 
 # Create a list containing three years: the current year and two following
-years = map(str, range(this_year, this_year + 3))
+years = list(map(str, range(this_year, this_year + 3)))
 
 # Set column groupings, to be displayed in the user output
 column_headers = [

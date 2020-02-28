@@ -1,4 +1,5 @@
-import os,json
+import os
+import json
 from collections import defaultdict
 
 out = defaultdict(dict)
@@ -8,17 +9,17 @@ out = defaultdict(dict)
 for publisher in os.listdir('ckan'):
     with open(os.path.join('ckan', publisher)) as fp:
         try:
-	    for package in json.load(fp)['result']['results']:
-		if package['resources']:
-		    extras = dict((x['key'], x['value']) for x in package['extras'])
-		    out[publisher][package['name']] = {
-			'title': package['title'],
-			'extras': extras,
-			'license_id': package['license_id'],
-			'resource': package['resources'][0],
-		    }
+            for package in json.load(fp)['result']['results']:
+                if package['resources']:
+                    extras = dict((x['key'], x['value']) for x in package['extras'])
+                    out[publisher][package['name']] = {
+                        'title': package['title'],
+                        'extras': extras,
+                        'license_id': package['license_id'],
+                        'resource': package['resources'][0],
+                    }
         except ValueError:
-            print '{0} is not valid JSON'.format(publisher)
+            print('{0} is not valid JSON'.format(publisher))
 
 with open('ckan.json', 'w') as fp:
-    json.dump(out, fp,  indent=2, sort_keys=True)
+    json.dump(out, fp, indent=2, sort_keys=True)
