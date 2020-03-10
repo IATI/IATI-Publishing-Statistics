@@ -465,9 +465,9 @@ class ActivityStats(CommonSharedElements):
             try:
                 date = datetime.datetime.strptime(activity_date.get('iso-date').strip('Z'), "%Y-%m-%d")
                 return int(date.year)
-            except ValueError, e:
+            except ValueError as e:
                 debug(self, e)
-            except AttributeError, e:
+            except AttributeError as e:
                 debug(self, e)
 
     @returns_numberdict
@@ -571,13 +571,18 @@ class ActivityStats(CommonSharedElements):
           True -- Secondary-reporter flag set
           False -- Secondary-reporter flag not set, or evaulates to False
         """
-        return bool(filter(lambda x: int(x) if str(x).isdigit() else 0,
-                    self.element.xpath('reporting-org/@secondary-reporter')))
+        secondary_reporter_elements = self.element.xpath('reporting-org/@secondary-reporter')
+        secondary = secondary_reporter_elements[0] if secondary_reporter_elements is not None and secondary_reporter_elements else None
+        return secondary in ['1', 1, 'true', True]
 
     @returns_dict
     def activities_secondary_reported(self):
         if self._is_secondary_reported():
-            return {self.element.find('iati-identifier').text: 0}
+            try:
+                return {self.element.find('iati-identifier').text: 0}
+            except AttributeError as e:
+                print("activities_secondary_reported error {}: {}".format(self.context, e))
+                return {}
         else:
             return {}
 
@@ -592,9 +597,12 @@ class ActivityStats(CommonSharedElements):
             value = budget.find('value')
 
             # Set budget_value if a value exists for this budget. Else set to 0
-            budget_value = 0 if value is None else Decimal(value.text)
-
-            out[budget_year(budget)][get_currency(self, budget)] += budget_value
+            try:
+                budget_value = 0 if (value is None or value.text is None) else Decimal(value.text)
+            except decimal.InvalidOperation:
+                budget_value = 0
+            if budget_year(budget):
+                out[budget_year(budget)][get_currency(self, budget)] += budget_value
         return out
 
     def _get_end_date(self):
@@ -701,7 +709,7 @@ class ActivityStats(CommonSharedElements):
             if (date_code_runs + relativedelta(months=+6)) > self._get_end_date():
                 return 1
 
-        if self._get_ratio_commitments_disbursements(year) >= 0.9 and self._get_ratio_commitments_disbursements(year) is not None:
+        if self._get_ratio_commitments_disbursements(year) is not None and self._get_ratio_commitments_disbursements(year) >= 0.9:
             return 2
         else:
             return 0
@@ -733,7 +741,7 @@ class ActivityStats(CommonSharedElements):
             return {self.element.find('iati-identifier').text: {year: int(self._forwardlooking_exclude_in_calculations(year))
                     for year in range(this_year, this_year + 3)}}
         except AttributeError as e:
-            print("Error {}: {}".format(self.context, e))
+            print("forwardlooking_excluded_activities error {}: {}".format(self.context, e))
 
 
     @returns_numberdict
@@ -846,7 +854,7 @@ class ActivityStats(CommonSharedElements):
         try:
             return {self.element.find('iati-identifier').text: self.comprehensiveness_current_activity_status}
         except AttributeError as e:
-            print("Error {}: {}".format(self.context, e))
+            print("comprehensiveness_current_activities error {}: {}".format(self.context, e))
 
     def _is_recipient_language_used(self):
         """If there is only 1 recipient-country, test if one of the languages for that country is used
@@ -985,7 +993,7 @@ class ActivityStats(CommonSharedElements):
             def decimal_or_zero(value):
                 try:
                     return Decimal(value)
-                except TypeError:
+                except (TypeError, decimal.InvalidOperation):
                     return 0
 
             def empty_or_percentage_sum_is_100(path, by_vocab=False):
@@ -1179,14 +1187,15 @@ class ActivityStats(CommonSharedElements):
         out = defaultdict(lambda: defaultdict(int))
         for transaction in self.element.findall('transaction'):
             date = transaction_date(transaction)
-            out[self._transaction_type_code(transaction)][unicode(date)] += 1
+            out[self._transaction_type_code(transaction)][date] += 1
         return out
 
     @returns_numberdictdict
     def count_transactions_by_type_by_year(self):
         out = defaultdict(lambda: defaultdict(int))
         for transaction in self.element.findall('transaction'):
-            out[self._transaction_type_code(transaction)][self._transaction_year(transaction)] += 1
+            if self._transaction_year(transaction):
+                out[self._transaction_type_code(transaction)][self._transaction_year(transaction)] += 1
         return out
 
     @returns_numberdictdictdict
@@ -1199,10 +1208,11 @@ class ActivityStats(CommonSharedElements):
 
                 # Set transaction_value if a value exists for this transaction. Else set to 0
                 try:
-                    transaction_value = 0 if value is None or value.text is None else Decimal(value.text)
+                    transaction_value = 0 if (value is None or value.text is None) else Decimal(value.text)
+                except decimal.InvalidOperation:
+                    transaction_value = 0
+                if self._transaction_year(transaction):
                     out[self._transaction_type_code(transaction)][get_currency(self, transaction)][self._transaction_year(transaction)] += transaction_value
-                except decimal.InvalidOperation as e:
-                    print("Error {}: {}".format(self.context, e))
         return out
 
     @returns_numberdictdictdict
@@ -1222,7 +1232,8 @@ class ActivityStats(CommonSharedElements):
     def count_budgets_by_type_by_year(self):
         out = defaultdict(lambda: defaultdict(int))
         for budget in self.element.findall('budget'):
-            out[budget.attrib.get('type')][budget_year(budget)] += 1
+            if budget_year(budget):
+                out[budget.attrib.get('type')][budget_year(budget)] += 1
         return out
 
     @returns_numberdictdictdict
@@ -1232,9 +1243,12 @@ class ActivityStats(CommonSharedElements):
             value = budget.find('value')
 
             # Set budget_value if a value exists for this budget. Else set to 0
-            budget_value = 0 if value is None else Decimal(value.text)
-
-            out[budget.attrib.get('type')][get_currency(self, budget)][budget_year(budget)] += budget_value
+            try:
+                budget_value = Decimal(0) if (value is None or value.text is None) else Decimal(value.text)
+            except (TypeError, AttributeError, decimal.InvalidOperation):
+                budget_value = Decimal(0)
+            if budget_year(budget):
+                out[budget.attrib.get('type')][get_currency(self, budget)][budget_year(budget)] += budget_value
         return out
 
     @returns_numberdictdictdict
@@ -1460,18 +1474,24 @@ class PublisherStats(object):
         """Computes the latest non-future transaction data across a dataset
         """
         nonfuture_transaction_dates = filter(lambda x: x is not None and x <= self.today,
-            map(iso_date_match, sum((x.keys() for x in self.aggregated['transaction_dates'].values()), [])))
+            map(iso_date_match, sum((list(x.keys()) for x in self.aggregated['transaction_dates'].values()), [])))
         if nonfuture_transaction_dates:
-            return unicode(max(nonfuture_transaction_dates))
+            try:
+                return max(nonfuture_transaction_dates)
+            except ValueError:
+                return None
 
     @no_aggregation
     def latest_transaction_date(self):
         """Computes the latest transaction data across a dataset. Can be in the future
         """
         transaction_dates = filter(lambda x: x is not None,
-            map(iso_date_match, sum((x.keys() for x in self.aggregated['transaction_dates'].values()), [])))
+            map(iso_date_match, sum((list(x.keys()) for x in self.aggregated['transaction_dates'].values()), [])))
         if transaction_dates:
-            return unicode(max(transaction_dates))
+            try:
+                return max(transaction_dates)
+            except ValueError:
+                return None
 
 
 class OrganisationFileStats(GenericFileStats):

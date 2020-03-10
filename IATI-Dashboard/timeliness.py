@@ -128,9 +128,9 @@ def frequency_index(frequency):
     return ['Monthly', 'Quarterly', 'Six-Monthly', 'Annual', 'Less than Annual'].index(frequency)
 
 def publisher_frequency_sorted():
-    return sorted(publisher_frequency(), key=lambda (publisher, publisher_title , _, frequency): (
-        frequency_index(frequency),
-        publisher_title
+    return sorted(publisher_frequency(), key=lambda p: (
+        frequency_index(p[3]),
+        p[1]
     ))
 
 def publisher_frequency_dict():
@@ -148,9 +148,9 @@ def timelag_index(timelag):
 
 def publisher_timelag_sorted():
     publisher_timelags = [(publisher, publisher_name.get(publisher), agg['transaction_months_with_year'], agg['timelag']) for publisher, agg in JSONDir('./stats-calculated/current/aggregated-publisher').items()]
-    return sorted(publisher_timelags, key=lambda (publisher, publisher_title, _, timelag): (
-        timelag_index(timelag),
-        publisher_title
+    return sorted(publisher_timelags, key=lambda p: (
+        timelag_index(p[3]),
+        p[1]
     ))
 
 def publisher_timelag_dict():

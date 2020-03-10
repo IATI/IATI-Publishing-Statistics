@@ -99,10 +99,10 @@ def table():
         publisher_forwardlooking_data = forwardlooking.generate_row(publisher)
 
         # Convert the data for this publishers 'Percentage of current activities with budgets' fields into integers
-        numbers = [ int(x) for x in publisher_forwardlooking_data['year_columns'][2].itervalues() if is_number(x) ]
-        
+        numbers = [ int(x) for x in publisher_forwardlooking_data['year_columns'][2].values() if is_number(x) ]
+
         # Compute and store the mean average for these fields
-        row['forwardlooking'] = sum(int(round(y)) for y in numbers) / len(publisher_forwardlooking_data['year_columns'][2])
+        row['forwardlooking'] = int(round(sum(int(round(y)) for y in numbers) / len(publisher_forwardlooking_data['year_columns'][2])))
 
 
         # Compute comprehensive statistic

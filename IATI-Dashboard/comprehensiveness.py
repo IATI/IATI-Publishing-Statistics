@@ -89,7 +89,7 @@ def get_hierarchy_with_most_budgets(stats):
         budgets = max(stats['by_hierarchy'], key=(lambda x:
             stats['by_hierarchy'][x]['comprehensiveness'].get('budget', 0) +
             stats['by_hierarchy'][x]['comprehensiveness'].get('budget_not_provided', 0)
-            if stats['by_hierarchy'][x]['comprehensiveness_denominator_default'] > 0 else None)
+            if stats['by_hierarchy'][x]['comprehensiveness_denominator_default'] > 0 else -1)
         )
         return budgets
     except KeyError:
@@ -107,7 +107,7 @@ def get_first_hierarchy_with_commitments(stats):
          Number of first hierarchy with commitments or None if no commitments in any hierarchy
     """
     hierarchies_with_commitments = {x: y['comprehensiveness']['transaction_commitment']
-                                     for x,y in stats.get('by_hierarchy',{}).iteritems()
+                                     for x,y in stats.get('by_hierarchy',{}).items()
                                      if y['comprehensiveness'].get('transaction_commitment', 0) > 0}
     return min(hierarchies_with_commitments) if len(hierarchies_with_commitments) else None
 

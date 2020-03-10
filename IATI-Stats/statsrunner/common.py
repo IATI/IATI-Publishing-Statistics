@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+
 # From http://bugs.python.org/issue16535
 class NumberStr(float):
     def __init__(self, o):
