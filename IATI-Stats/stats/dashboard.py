@@ -571,10 +571,9 @@ class ActivityStats(CommonSharedElements):
           True -- Secondary-reporter flag set
           False -- Secondary-reporter flag not set, or evaulates to False
         """
-        if len(self.element.xpath('reporting-org/@secondary-reporter')) > 0:
-            return bool(filter(lambda x: int(x) if x and str(x).isdigit() else 0,
-                        self.element.xpath('reporting-org/@secondary-reporter')))
-        return False
+        secondary_reporter_elements = self.element.xpath('reporting-org/@secondary-reporter')
+        secondary = secondary_reporter_elements[0] if secondary_reporter_elements is not None and secondary_reporter_elements else None
+        return secondary in ['1', 1, 'true', True]
 
     @returns_dict
     def activities_secondary_reported(self):
