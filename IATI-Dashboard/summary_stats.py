@@ -102,7 +102,7 @@ def table():
         numbers = [ int(x) for x in publisher_forwardlooking_data['year_columns'][2].values() if is_number(x) ]
 
         # Compute and store the mean average for these fields
-        row['forwardlooking'] = sum(int(round(y)) for y in numbers) / len(publisher_forwardlooking_data['year_columns'][2])
+        row['forwardlooking'] = int(round(sum(int(round(y)) for y in numbers) / len(publisher_forwardlooking_data['year_columns'][2])))
 
 
         # Compute comprehensive statistic
