@@ -5,6 +5,7 @@ import common
 import timeliness
 import forwardlooking
 import comprehensiveness
+from python2round import round2
 
 # Set column groupings, to be displayed in the user output
 columns = [
@@ -91,7 +92,7 @@ def table():
             timelag_score = 0
 
         # Compute the percentage
-        row['timeliness'] = int( round((float(frequency_score + timelag_score) / 8) * 100))
+        row['timeliness'] = int( round2((float(frequency_score + timelag_score) / 8) * 100))
 
 
         # Compute forward-looking statistic
@@ -102,7 +103,7 @@ def table():
         numbers = [ int(x) for x in publisher_forwardlooking_data['year_columns'][2].values() if is_number(x) ]
 
         # Compute and store the mean average for these fields
-        row['forwardlooking'] = int(round(sum(int(round(y)) for y in numbers) / len(publisher_forwardlooking_data['year_columns'][2])))
+        row['forwardlooking'] = int(round2(sum(int(round2(y)) for y in numbers) / len(publisher_forwardlooking_data['year_columns'][2])))
 
 
         # Compute comprehensive statistic
@@ -114,7 +115,7 @@ def table():
 
 
         # Compute score
-        row['score'] = int( round(float(row['timeliness'] + row['forwardlooking'] + row['comprehensive']) / 3 ))
+        row['score'] = int( round2(float(row['timeliness'] + row['forwardlooking'] + row['comprehensive']) / 3 ))
 
         # Return a generator object
         yield row

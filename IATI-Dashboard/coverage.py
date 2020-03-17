@@ -5,6 +5,7 @@ from data import get_registry_id_matches
 from data import publisher_name
 from data import publishers_ordered_by_title
 from data import secondary_publishers
+from python2round import round2
 
 def is_number(s):
     """ Tests if a variable is a number.
@@ -75,7 +76,7 @@ def generate_row(publisher):
             iati_2014_spend_total += transactions_usd['E']['USD']['2014']
 
     # Convert to millions USD
-    row['iati_spend_2014'] = round(float( iati_2014_spend_total / 1000000), 2)
+    row['iati_spend_2014'] = round2(float( iati_2014_spend_total / 1000000), 2)
 
 
     # Compute 2015 IATI spend
@@ -105,7 +106,7 @@ def generate_row(publisher):
             iati_2015_spend_total += transactions_usd['E']['USD']['2015']
 
     # Convert to millions USD
-    row['iati_spend_2015'] = round(float( iati_2015_spend_total / 1000000), 2)
+    row['iati_spend_2015'] = round2(float( iati_2015_spend_total / 1000000), 2)
 
     # Compute 2016 IATI spend
     iati_2016_spend_total = 0
@@ -134,7 +135,7 @@ def generate_row(publisher):
             iati_2016_spend_total += transactions_usd['E']['USD']['2016']
 
     # Convert to millions USD
-    row['iati_spend_2016'] = round(float( iati_2016_spend_total / 1000000), 2)
+    row['iati_spend_2016'] = round2(float( iati_2016_spend_total / 1000000), 2)
 
 
     # Get reference data
@@ -143,9 +144,9 @@ def generate_row(publisher):
     data_2015 = publisher_stats['reference_spend_data_usd'].get('2015', {'ref_spend': '', 'official_forecast': '', 'not_in_sheet': True})
 
     # Compute reference data as $USDm
-    row['reference_spend_2014'] = round((float(data_2014['ref_spend']) / 1000000), 2) if is_number(data_2014['ref_spend']) else '-'
-    row['reference_spend_2015'] = round((float(data_2015['ref_spend']) / 1000000), 2) if is_number(data_2015['ref_spend']) else '-'
-    row['official_forecast_2015'] = round((float(data_2015['official_forecast']) / 1000000), 2) if is_number(data_2015['official_forecast']) else '-'
+    row['reference_spend_2014'] = round2((float(data_2014['ref_spend']) / 1000000), 2) if is_number(data_2014['ref_spend']) else '-'
+    row['reference_spend_2015'] = round2((float(data_2015['ref_spend']) / 1000000), 2) if is_number(data_2015['ref_spend']) else '-'
+    row['official_forecast_2015'] = round2((float(data_2015['official_forecast']) / 1000000), 2) if is_number(data_2015['official_forecast']) else '-'
 
 
     # Compute spend ratio score
@@ -164,7 +165,7 @@ def generate_row(publisher):
 
 
     # Get the maximum value and convert to a percentage
-    row['spend_ratio'] = int(round(max(spend_ratio_candidates) * 100))
+    row['spend_ratio'] = int(round2(max(spend_ratio_candidates) * 100))
 
     return row
 

@@ -1,6 +1,7 @@
 # This file converts raw comprehensiveness data to percentages, and calculates averages.
 
 from data import publishers_ordered_by_title, get_publisher_stats, publisher_name
+from python2round import round2
 
 columns = {
     'summary': [
@@ -158,10 +159,10 @@ def generate_row(publisher):
 
         if denominator(slug, publisher_base) != 0:
             # Populate the row with the %age
-            row[slug] = int(round(
+            row[slug] = int(round2(
                 float(numerator_all)/denominator(slug, publisher_base)*100
                 ))
-            row[slug+'_valid'] = int(round(
+            row[slug+'_valid'] = int(round2(
                 float(numerator_valid)/denominator(slug, publisher_base)*100
                 ))
 
@@ -169,10 +170,10 @@ def generate_row(publisher):
     # Calculate the average for each grouping, and the overall 'summary' average
     for page in ['core', 'financials', 'valueadded', 'summary']:
         # Note that the summary must be last, so that it can use the average calculations from the other groupings
-        row[page+'_average'] = int(round(
+        row[page+'_average'] = int(round2(
             sum((row.get(x[0]) or 0)*x[2] for x in columns[page]) / float(sum(x[2] for x in columns[page]))
             ))
-        row[page+'_average_valid'] = int(round(
+        row[page+'_average_valid'] = int(round2(
             sum((row.get(x[0]+'_valid') or 0)*x[2] for x in columns[page]) / float(sum(x[2] for x in columns[page]))
             ))
 

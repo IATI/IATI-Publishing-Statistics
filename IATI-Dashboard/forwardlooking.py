@@ -2,6 +2,7 @@
 
 from data import publishers_ordered_by_title, get_publisher_stats, publisher_name
 import datetime
+from python2round import round2
 
 # Create a variable with the current year as an integer
 this_year = datetime.date.today().year
@@ -66,7 +67,7 @@ def generate_row(publisher):
             if not int(row['year_columns'][0][year]):
                 row['year_columns'][2][year] = '-'
             else:
-                row['year_columns'][2][year] = int(round(float(row['year_columns'][1][year])/float(row['year_columns'][0][year])*100))
+                row['year_columns'][2][year] = int(round2(float(row['year_columns'][1][year])/float(row['year_columns'][0][year])*100))
         else:
             # Else if either 'forwardlooking_activities_current' or 'forwardlooking_activities_with_budgets' are not in the bottom hierarchy, set data zero
             # This should only occur if a publisher has 0 activities

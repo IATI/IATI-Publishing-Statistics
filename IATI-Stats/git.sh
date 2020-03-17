@@ -36,7 +36,7 @@ cp helpers/ckan.json $GITOUT_DIR
 # Clear output directory
 echo "LOG: `date '+%Y-%m-%d %H:%M:%S'` - Clearing output directory"
 rm -r out
-
+mkdir out
 cd data || exit $?
 # Checkout automatic, and make sure it is clean and up to date
 echo "LOG: `date '+%Y-%m-%d %H:%M:%S'` - Performing git operations on the data snapshot"
