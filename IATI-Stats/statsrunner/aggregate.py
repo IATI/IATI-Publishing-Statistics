@@ -73,8 +73,7 @@ def aggregate_file(stats_module, stats_json, output_dir):
     for aggregate_name, aggregate in subtotal.items():
         with open(os.path.join(output_dir, aggregate_name + '.json'), 'w') as fp:
             if aggregate_name == "by_hierarchy" and aggregate:
-                null_sorted = null_sorter(aggregate)[0]
-                json.dump({null_sorted[0]: null_sorted[1]}, fp, indent=2, default=decimal_default)
+                json.dump(aggregate, fp, indent=2, default=decimal_default)
             else:
                 try:
                     json.dump(aggregate, fp, sort_keys=True, indent=2, default=decimal_default)
