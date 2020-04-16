@@ -73,7 +73,9 @@ def budget_year(budget):
 
     if start and end:
         if (end - start).days <= 370:
-            if end.month >= 7:
+            if end.year == start.year:
+                return end.year
+            elif end.month >= 7:
                 return end.year
             else:
                 return end.year - 1
