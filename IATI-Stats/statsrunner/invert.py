@@ -20,7 +20,7 @@ def invert_dir(basedirname, out_filename, output_dir):
                 try:
                     stats_values = json.load(fp)
                 except json.decoder.JSONDecodeError:
-                    import pdb; pdb.set_trace()
+                    continue
                 if type(stats_values) == dict:
                     if stats_name not in out:
                         out[stats_name] = defaultdict(dict)
