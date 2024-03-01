@@ -31,7 +31,9 @@ def dict_sum_inplace(d1, d2):
                 d1[k] = copy.deepcopy(v)
         elif (type(d1) != defaultdict and not k in d1):
             d1[k] = copy.deepcopy(v)
-        elif d1[k] is None:
+        elif d1[k] is None or d1[k] is type(None):
+            continue
+        elif v is None or v is type(None):
             continue
         else:
             d1[k] += v
