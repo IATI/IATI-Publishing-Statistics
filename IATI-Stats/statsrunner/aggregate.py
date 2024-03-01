@@ -31,7 +31,10 @@ def dict_sum_inplace(d1, d2):
                 d1[k] = copy.deepcopy(v)
         elif (type(d1) != defaultdict and not k in d1):
             d1[k] = copy.deepcopy(v)
-        elif d1[k] is None:
+        # Can we do a more robust approach?
+        # Dashboard checks type is in [int, decimal.Decimal, float]
+        # https://github.com/IATI/IATI-Stats/blob/master/statsrunner/aggregate.py#L22-L42
+        elif d1[k] is None or v is None:
             continue
         else:
             d1[k] += v
