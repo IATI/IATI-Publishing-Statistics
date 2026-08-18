@@ -1,6 +1,10 @@
 IATI-Publishing-Statistics
 ===========================
 
+NOTE: This repository is no longer in active use. It has been superseded by functionality added to the IATI Dashboard: https://github.com/IATI/IATI-Dashboard
+
+-------------
+
 Tables and files presenting different stats for IATI publishers
 
 Introduction
