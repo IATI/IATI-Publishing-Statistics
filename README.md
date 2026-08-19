@@ -1,5 +1,7 @@
-IATI-Publishing-Statistics
-===========================
+IATI-Publishing-Statistics (archived)
+=====================================
+
+**Archived: The code in this repository was moved back into the IATI-Dashboard repository in https://github.com/IATI/IATI-Dashboard/pull/627/changes/33acc30a560a94c443d3243771ef26a15c288d7c**
 
 Tables and files presenting different stats for IATI publishers
 
